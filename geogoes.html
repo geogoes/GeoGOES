@@ -1,0 +1,1188 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GeoGOES — Sistema de Rastreo</title>
+<link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=Share+Tech+Mono&family=Barlow+Condensed:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<style>
+  :root {
+    --orange: #FF6B00;
+    --orange-dim: #cc5500;
+    --orange-glow: rgba(255,107,0,0.25);
+    --black: #000000;
+    --dark: #0a0a0a;
+    --dark2: #111111;
+    --dark3: #1a1a1a;
+    --dark4: #222222;
+    --border: #2a2a2a;
+    --text: #e0e0e0;
+    --text-dim: #888;
+    --cyan: #00d4ff;
+    --green: #00e676;
+    --red: #ff3d3d;
+    --yellow: #ffd600;
+    --font-main: 'Barlow Condensed', sans-serif;
+    --font-mono: 'Share Tech Mono', monospace;
+    --font-display: 'Rajdhani', sans-serif;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--black);
+    color: var(--text);
+    font-family: var(--font-main);
+    overflow: hidden;
+    height: 100vh;
+    width: 100vw;
+  }
+
+  /* ===== LOGIN ===== */
+  #login-screen {
+    position: fixed;
+    inset: 0;
+    background: #000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 9999;
+    flex-direction: column;
+  }
+
+  .login-bg {
+    position: absolute;
+    inset: 0;
+    background: 
+      radial-gradient(ellipse at 30% 20%, rgba(255,107,0,0.08) 0%, transparent 60%),
+      radial-gradient(ellipse at 70% 80%, rgba(0,212,255,0.05) 0%, transparent 60%);
+  }
+
+  .login-grid {
+    position: absolute;
+    inset: 0;
+    background-image: 
+      linear-gradient(rgba(255,107,0,0.04) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255,107,0,0.04) 1px, transparent 1px);
+    background-size: 40px 40px;
+  }
+
+  .login-box {
+    position: relative;
+    width: 380px;
+    background: var(--dark2);
+    border: 1px solid var(--border);
+    border-top: 2px solid var(--orange);
+    padding: 40px 36px;
+    box-shadow: 0 0 60px rgba(255,107,0,0.15), 0 20px 60px rgba(0,0,0,0.8);
+  }
+
+  .login-logo {
+    text-align: center;
+    margin-bottom: 32px;
+  }
+
+  .login-logo .shield-icon {
+    width: 64px;
+    height: 64px;
+    margin: 0 auto 12px;
+    display: block;
+  }
+
+  .login-logo h1 {
+    font-family: var(--font-display);
+    font-size: 36px;
+    font-weight: 700;
+    letter-spacing: 6px;
+    color: #fff;
+  }
+
+  .login-logo h1 span { color: var(--orange); }
+
+  .login-logo p {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    letter-spacing: 3px;
+    color: var(--cyan);
+    margin-top: 4px;
+  }
+
+  .login-label {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    letter-spacing: 2px;
+    color: var(--text-dim);
+    margin-bottom: 6px;
+    display: block;
+  }
+
+  .login-input {
+    width: 100%;
+    background: var(--dark3);
+    border: 1px solid var(--border);
+    border-bottom: 1px solid var(--orange-dim);
+    color: var(--text);
+    padding: 12px 14px;
+    font-family: var(--font-mono);
+    font-size: 13px;
+    margin-bottom: 20px;
+    outline: none;
+    transition: all 0.2s;
+  }
+
+  .login-input:focus {
+    border-color: var(--orange);
+    background: var(--dark4);
+    box-shadow: 0 0 0 1px var(--orange-glow);
+  }
+
+  .login-btn {
+    width: 100%;
+    padding: 14px;
+    background: var(--orange);
+    color: #000;
+    border: none;
+    font-family: var(--font-display);
+    font-size: 16px;
+    font-weight: 700;
+    letter-spacing: 3px;
+    cursor: pointer;
+    transition: all 0.2s;
+    margin-top: 4px;
+  }
+
+  .login-btn:hover { background: #ff8c00; transform: translateY(-1px); box-shadow: 0 4px 20px var(--orange-glow); }
+
+  .login-link {
+    display: block;
+    text-align: center;
+    margin-top: 16px;
+    font-family: var(--font-mono);
+    font-size: 10px;
+    letter-spacing: 2px;
+    color: var(--text-dim);
+    cursor: pointer;
+    text-decoration: underline;
+  }
+
+  .login-error {
+    background: rgba(255,61,61,0.1);
+    border: 1px solid var(--red);
+    color: var(--red);
+    font-family: var(--font-mono);
+    font-size: 11px;
+    padding: 8px 12px;
+    margin-bottom: 16px;
+    display: none;
+    letter-spacing: 1px;
+  }
+
+  /* ===== MAIN APP ===== */
+  #app {
+    display: none;
+    height: 100vh;
+    width: 100vw;
+    flex-direction: column;
+  }
+
+  /* TOP BAR */
+  .topbar {
+    height: 48px;
+    background: var(--dark2);
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    padding: 0 12px;
+    gap: 12px;
+    position: relative;
+    z-index: 100;
+    flex-shrink: 0;
+  }
+
+  .topbar-logo {
+    font-family: var(--font-display);
+    font-size: 20px;
+    font-weight: 700;
+    letter-spacing: 3px;
+    color: #fff;
+  }
+  .topbar-logo span { color: var(--orange); }
+
+  .topbar-divider { width: 1px; height: 24px; background: var(--border); }
+
+  .topbar-clock {
+    font-family: var(--font-mono);
+    font-size: 13px;
+    color: var(--cyan);
+    background: rgba(0,212,255,0.08);
+    padding: 4px 10px;
+    border: 1px solid rgba(0,212,255,0.2);
+    letter-spacing: 1px;
+  }
+
+  .topbar-spacer { flex: 1; }
+
+  .topbar-btn {
+    width: 32px;
+    height: 32px;
+    background: var(--dark3);
+    border: 1px solid var(--border);
+    color: var(--text-dim);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    font-size: 16px;
+    transition: all 0.2s;
+    position: relative;
+  }
+  .topbar-btn:hover { border-color: var(--orange); color: var(--orange); }
+
+  .alert-badge {
+    position: absolute;
+    top: -5px;
+    right: -5px;
+    background: var(--red);
+    color: #fff;
+    font-family: var(--font-mono);
+    font-size: 9px;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+  }
+
+  .topbar-menu-btn {
+    width: 32px;
+    height: 32px;
+    background: none;
+    border: none;
+    color: var(--text);
+    cursor: pointer;
+    font-size: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  /* BOTTOM STATS BAR */
+  .statsbar {
+    height: 32px;
+    background: var(--dark);
+    border-top: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    padding: 0 12px;
+    gap: 16px;
+    flex-shrink: 0;
+    overflow-x: auto;
+  }
+
+  .stat-item {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    white-space: nowrap;
+  }
+
+  .stat-label { color: var(--text-dim); letter-spacing: 1px; }
+  .stat-value { color: var(--text); font-weight: bold; }
+  .stat-value.orange { color: var(--orange); }
+  .stat-value.green { color: var(--green); }
+  .stat-value.red { color: var(--red); }
+  .stat-value.cyan { color: var(--cyan); }
+  .stat-value.yellow { color: var(--yellow); }
+
+  .stat-pill {
+    padding: 2px 8px;
+    font-family: var(--font-mono);
+    font-size: 10px;
+    font-weight: bold;
+    letter-spacing: 1px;
+  }
+  .stat-pill.stop { background: var(--red); color: #fff; }
+  .stat-pill.moving { background: var(--green); color: #000; }
+
+  /* BODY */
+  .app-body {
+    display: flex;
+    flex: 1;
+    overflow: hidden;
+  }
+
+  /* SIDEBAR */
+  .sidebar {
+    width: 300px;
+    background: var(--dark2);
+    border-right: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    flex-shrink: 0;
+    overflow: hidden;
+  }
+
+  .sidebar-tabs {
+    display: flex;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .sidebar-tab {
+    flex: 1;
+    padding: 10px 4px;
+    font-family: var(--font-mono);
+    font-size: 9px;
+    letter-spacing: 1px;
+    color: var(--text-dim);
+    cursor: pointer;
+    text-align: center;
+    border-bottom: 2px solid transparent;
+    transition: all 0.2s;
+    background: none;
+    border-top: none;
+    border-left: none;
+    border-right: none;
+  }
+
+  .sidebar-tab.active {
+    color: var(--orange);
+    border-bottom-color: var(--orange);
+    background: rgba(255,107,0,0.05);
+  }
+
+  .sidebar-content {
+    flex: 1;
+    overflow-y: auto;
+    scrollbar-width: thin;
+    scrollbar-color: var(--border) transparent;
+  }
+
+  .sidebar-search {
+    padding: 10px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .search-input {
+    width: 100%;
+    background: var(--dark3);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 8px 10px 8px 32px;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    outline: none;
+    position: relative;
+  }
+
+  .search-wrap { position: relative; }
+  .search-wrap::before {
+    content: '⌕';
+    position: absolute;
+    left: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--text-dim);
+    font-size: 14px;
+    z-index: 1;
+  }
+
+  /* VEHICLE CARD */
+  .vehicle-card {
+    padding: 10px 12px;
+    border-bottom: 1px solid var(--border);
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+
+  .vehicle-card:hover { background: rgba(255,107,0,0.05); }
+  .vehicle-card.selected { background: rgba(255,107,0,0.08); border-left: 2px solid var(--orange); }
+
+  .vc-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 6px;
+  }
+
+  .vc-plate {
+    font-family: var(--font-display);
+    font-size: 18px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    color: #fff;
+  }
+
+  .vc-status {
+    font-family: var(--font-mono);
+    font-size: 9px;
+    font-weight: bold;
+    padding: 2px 7px;
+    letter-spacing: 1px;
+  }
+  .vc-status.moving { background: rgba(0,230,118,0.15); color: var(--green); border: 1px solid rgba(0,230,118,0.3); }
+  .vc-status.stop { background: rgba(255,61,61,0.15); color: var(--red); border: 1px solid rgba(255,61,61,0.3); }
+
+  .vc-stats {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-family: var(--font-mono);
+    font-size: 10px;
+    color: var(--text-dim);
+  }
+
+  .vc-speed { color: var(--text); }
+  .vc-speed.fast { color: var(--green); }
+
+  .vc-signal { display: flex; gap: 1px; align-items: flex-end; }
+  .signal-bar {
+    width: 3px;
+    background: var(--green);
+    border-radius: 1px;
+  }
+
+  .vc-time { font-size: 9px; letter-spacing: 1px; }
+
+  /* TRACEABILITY CARD */
+  .trace-card {
+    padding: 10px 12px;
+    border-bottom: 1px solid var(--border);
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .trace-card:hover { background: rgba(255,107,0,0.05); }
+
+  .tc-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px; }
+  .tc-plate { font-family: var(--font-display); font-size: 16px; font-weight: 700; color: #fff; }
+  .tc-zone { font-family: var(--font-mono); font-size: 9px; padding: 2px 6px; background: rgba(0,212,255,0.1); color: var(--cyan); border: 1px solid rgba(0,212,255,0.2); }
+  .tc-driver { font-family: var(--font-main); font-size: 11px; color: var(--text-dim); margin-bottom: 6px; letter-spacing: 0.5px; }
+  .tc-info { display: flex; justify-content: space-between; font-family: var(--font-mono); font-size: 10px; }
+  .tc-timer { color: var(--cyan); font-weight: bold; }
+  .tc-addr { font-size: 9px; color: var(--text-dim); margin-top: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+  /* ALERT CARD */
+  .alert-card {
+    padding: 10px 12px;
+    border-bottom: 1px solid rgba(255,61,61,0.15);
+    background: rgba(255,61,61,0.03);
+  }
+
+  .ac-type {
+    font-family: var(--font-display);
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 1px;
+    color: var(--red);
+    margin-bottom: 4px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .ac-info {
+    display: flex;
+    justify-content: space-between;
+    font-family: var(--font-mono);
+    font-size: 9px;
+    color: var(--text-dim);
+  }
+
+  .ac-plate { color: var(--orange); font-weight: bold; }
+  .ac-new { background: var(--red); color: #fff; padding: 1px 6px; font-size: 8px; letter-spacing: 1px; }
+
+  /* MAP */
+  #map {
+    flex: 1;
+    position: relative;
+    height: 100%;
+    width: 100%;
+    min-height: 400px;
+    background: #1a1a1a;
+  }
+
+  .leaflet-container { background: #1a1a1a !important; }
+
+  /* MAP CONTROLS */
+  .map-controls {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    z-index: 1000;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .map-btn {
+    width: 36px;
+    height: 36px;
+    background: var(--dark2);
+    border: 1px solid var(--border);
+    color: var(--text);
+    cursor: pointer;
+    font-size: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+  }
+  .map-btn:hover { border-color: var(--orange); color: var(--orange); }
+
+  /* SIDE PANEL (overlay) */
+  .side-panel {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 260px;
+    height: 100%;
+    background: var(--dark2);
+    border-right: 1px solid var(--border);
+    z-index: 500;
+    display: none;
+    flex-direction: column;
+    animation: slideIn 0.2s ease;
+  }
+
+  @keyframes slideIn {
+    from { transform: translateX(-100%); opacity: 0; }
+    to { transform: translateX(0); opacity: 1; }
+  }
+
+  .side-panel.open { display: flex; }
+
+  .panel-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 16px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .panel-title {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    letter-spacing: 2px;
+    color: var(--cyan);
+  }
+
+  .panel-close {
+    background: none;
+    border: none;
+    color: var(--text-dim);
+    cursor: pointer;
+    font-size: 16px;
+  }
+  .panel-close:hover { color: var(--red); }
+
+  .panel-menu-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 16px;
+    border-bottom: 1px solid var(--border);
+    cursor: pointer;
+    transition: all 0.15s;
+    font-family: var(--font-display);
+    font-size: 15px;
+    font-weight: 600;
+    letter-spacing: 2px;
+    color: var(--text-dim);
+  }
+
+  .panel-menu-item:hover { background: rgba(255,107,0,0.08); color: var(--orange); }
+  .panel-menu-item.active { color: var(--orange); background: rgba(255,107,0,0.05); }
+
+  /* ALERT PANEL overlay */
+  .alert-panel {
+    position: absolute;
+    top: 48px;
+    right: 0;
+    width: 320px;
+    height: calc(100vh - 80px);
+    background: var(--dark2);
+    border-left: 1px solid var(--border);
+    border-top: 2px solid var(--red);
+    z-index: 500;
+    display: none;
+    flex-direction: column;
+    animation: slideRight 0.2s ease;
+  }
+
+  @keyframes slideRight {
+    from { transform: translateX(100%); opacity: 0; }
+    to { transform: translateX(0); opacity: 1; }
+  }
+
+  .alert-panel.open { display: flex; }
+
+  .alert-panel-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 16px;
+    border-bottom: 1px solid rgba(255,61,61,0.3);
+  }
+
+  .alert-panel-title {
+    font-family: var(--font-display);
+    font-size: 14px;
+    font-weight: 700;
+    letter-spacing: 2px;
+    color: var(--red);
+  }
+
+  .alert-panel-list {
+    flex: 1;
+    overflow-y: auto;
+    scrollbar-width: thin;
+    scrollbar-color: var(--border) transparent;
+  }
+
+  /* VEHICLE POPUP on map */
+  .leaflet-popup-content-wrapper {
+    background: var(--dark2) !important;
+    border: 1px solid var(--orange) !important;
+    border-radius: 0 !important;
+    box-shadow: 0 0 20px var(--orange-glow) !important;
+    color: var(--text) !important;
+  }
+
+  .leaflet-popup-tip { background: var(--dark2) !important; }
+
+  .popup-content { padding: 4px; min-width: 160px; }
+  .popup-plate { font-family: var(--font-display); font-size: 20px; font-weight: 700; color: #fff; margin-bottom: 8px; }
+  .popup-row { display: flex; justify-content: space-between; font-family: var(--font-mono); font-size: 10px; margin-bottom: 4px; }
+  .popup-label { color: var(--text-dim); }
+  .popup-val { color: var(--orange); }
+  .popup-val.green { color: var(--green); }
+
+  /* SECTION HEADER in sidebar */
+  .section-header {
+    padding: 8px 12px;
+    background: var(--dark3);
+    border-bottom: 1px solid var(--border);
+    font-family: var(--font-mono);
+    font-size: 10px;
+    letter-spacing: 2px;
+    color: var(--cyan);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  /* Scrollbar */
+  ::-webkit-scrollbar { width: 4px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+  /* Pulse animation for moving vehicles */
+  @keyframes pulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.7; transform: scale(1.1); }
+  }
+
+  .vehicle-marker-moving { animation: pulse 2s infinite; }
+
+  /* Responsive */
+  @media (max-width: 768px) {
+    .sidebar { display: none; }
+  }
+</style>
+</head>
+<body>
+
+<!-- LOGIN SCREEN -->
+<div id="login-screen">
+  <div class="login-bg"></div>
+  <div class="login-grid"></div>
+  <div class="login-box">
+    <div class="login-logo">
+      <svg class="shield-icon" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M50 5 L90 20 L90 50 C90 72 72 90 50 95 C28 90 10 72 10 50 L10 20 Z" fill="#111" stroke="#FF6B00" stroke-width="3"/>
+        <path d="M50 15 L80 28 L80 50 C80 66 67 80 50 84 C33 80 20 66 20 50 L20 28 Z" fill="#000"/>
+        <path d="M45 30 C35 35 28 42 28 55 C28 62 34 67 42 65 L50 62 L58 65 C66 67 72 62 72 55 C72 42 65 35 55 30 C52 35 48 35 45 30Z" fill="#FF6B00" opacity="0.9"/>
+        <path d="M50 28 C50 28 38 38 38 52 C38 58 43 62 50 60 C57 62 62 58 62 52 C62 38 50 28 50 28Z" fill="#000" opacity="0.5"/>
+      </svg>
+      <h1>GEO<span>GOES</span></h1>
+      <p>SISTEMA DE RASTREO GPS | ACCESO RESTRINGIDO</p>
+    </div>
+    <div class="login-error" id="login-error">⚠ CREDENCIALES INCORRECTAS</div>
+    <label class="login-label">CORREO ELECTRÓNICO</label>
+    <input class="login-input" type="email" id="login-email" placeholder="usuario@geogoes.com" value="admin@geogoes.com"/>
+    <label class="login-label">CONTRASEÑA TÁCTICA</label>
+    <input class="login-input" type="password" id="login-pass" placeholder="••••••••" value="goes2024"/>
+    <button class="login-btn" onclick="doLogin()">INICIAR SECUENCIA</button>
+    <a class="login-link">SOLICITAR CREDENCIALES</a>
+  </div>
+</div>
+
+<!-- MAIN APP -->
+<div id="app">
+
+  <!-- TOP BAR -->
+  <div class="topbar">
+    <button class="topbar-menu-btn" onclick="toggleSidePanel()">☰</button>
+    <div class="topbar-logo">GEO<span>GOES</span></div>
+    <div class="topbar-divider"></div>
+    <div class="topbar-clock" id="clock">00:00:00</div>
+    <div class="topbar-spacer"></div>
+    <div class="topbar-btn" onclick="toggleAlertPanel()" title="Alertas">
+      🔔
+      <div class="alert-badge" id="alert-count">3</div>
+    </div>
+    <div class="topbar-btn" title="Configuración">⚙</div>
+    <div class="topbar-btn" onclick="doLogout()" title="Salir">⏻</div>
+  </div>
+
+  <!-- APP BODY -->
+  <div class="app-body">
+
+    <!-- SIDEBAR -->
+    <div class="sidebar">
+      <div class="sidebar-tabs">
+        <button class="sidebar-tab active" onclick="switchTab('fleet', this)">FLOTA</button>
+        <button class="sidebar-tab" onclick="switchTab('trace', this)">TRAZABILIDAD</button>
+        <button class="sidebar-tab" onclick="switchTab('history', this)">HISTORIAL</button>
+      </div>
+
+      <!-- FLEET TAB -->
+      <div id="tab-fleet" class="sidebar-content">
+        <div class="sidebar-search">
+          <div class="search-wrap">
+            <input class="search-input" placeholder="BUSCAR PLACA, CONDUCTOR..." id="fleet-search" oninput="filterFleet(this.value)"/>
+          </div>
+        </div>
+        <div class="section-header">
+          <span>MONITOREOS ACTIVOS</span>
+          <span id="fleet-count">10</span>
+        </div>
+        <div id="fleet-list"></div>
+      </div>
+
+      <!-- TRACE TAB -->
+      <div id="tab-trace" class="sidebar-content" style="display:none">
+        <div class="sidebar-search">
+          <div class="search-wrap">
+            <input class="search-input" placeholder="BUSCAR PLACA..." id="trace-search"/>
+          </div>
+        </div>
+        <div class="section-header">
+          <span>🚛 FLOTA EN OPERACIÓN</span>
+          <span id="trace-count">10</span>
+        </div>
+        <div id="trace-list"></div>
+      </div>
+
+      <!-- HISTORY TAB -->
+      <div id="tab-history" class="sidebar-content" style="display:none">
+        <div class="section-header"><span>HISTORIAL DE RUTAS</span></div>
+        <div id="history-list" style="padding:12px;">
+          <div style="font-family:var(--font-mono);font-size:11px;color:var(--text-dim);text-align:center;padding:20px;">
+            Selecciona un vehículo<br>para ver su historial
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- MAP CONTAINER -->
+    <div style="flex:1;position:relative;height:100%;overflow:hidden;">
+      <div id="map"></div>
+
+      <!-- MAP CONTROLS -->
+      <div class="map-controls">
+        <button class="map-btn" onclick="map.zoomIn()">+</button>
+        <button class="map-btn" onclick="map.zoomOut()">−</button>
+        <button class="map-btn" onclick="toggleLayer()" title="Cambiar capa">🗂</button>
+        <button class="map-btn" onclick="centerMap()" title="Centrar">⌖</button>
+      </div>
+
+      <!-- SIDE NAV PANEL -->
+      <div class="side-panel" id="side-panel">
+        <div class="panel-header">
+          <span class="panel-title">COMANDO</span>
+          <button class="panel-close" onclick="toggleSidePanel()">✕</button>
+        </div>
+        <div class="panel-menu-item active" onclick="switchSidePanel('fleet')">🏠 CENTRO DE MANDO</div>
+        <div class="panel-menu-item" onclick="switchSidePanel('fleet')">🚛 CONTROL DE FLOTA</div>
+        <div class="panel-menu-item" onclick="switchSidePanel('trace')">🛰 TRAZABILIDAD</div>
+        <div class="panel-menu-item" onclick="switchSidePanel('history')">📋 HISTORIAL</div>
+        <div style="padding:16px;margin-top:auto;border-top:1px solid var(--border);">
+          <div style="font-family:var(--font-mono);font-size:9px;color:var(--text-dim);letter-spacing:1px;">USUARIO</div>
+          <div style="font-family:var(--font-main);font-size:14px;color:var(--orange);margin-top:4px;">admin@geogoes.com</div>
+        </div>
+      </div>
+
+      <!-- ALERT PANEL -->
+      <div class="alert-panel" id="alert-panel">
+        <div class="alert-panel-header">
+          <span class="alert-panel-title">⚠ BANDEJA DE ALERTAS</span>
+          <button class="panel-close" onclick="toggleAlertPanel()">✕</button>
+        </div>
+        <div class="alert-panel-list" id="alert-list"></div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- BOTTOM STATS BAR -->
+  <div class="statsbar">
+    <div class="stat-item"><span class="stat-label">TOT</span><span class="stat-value orange" id="stat-tot">10</span></div>
+    <div class="stat-item"><span class="stat-label">MOV</span><span class="stat-value green" id="stat-mov">0</span></div>
+    <div class="stat-item"><span class="stat-label">STOP</span><span class="stat-pill stop" id="stat-stop">0</span></div>
+    <div class="stat-item"><span class="stat-label">ALERTAS</span><span class="stat-value red" id="stat-alerts">3</span></div>
+    <div class="stat-item"><span class="stat-label">VELOCIDAD MÁX</span><span class="stat-value cyan" id="stat-maxspd">0 kph</span></div>
+    <div class="stat-item"><span class="stat-label">ZONA</span><span class="stat-value yellow">LIMA - CALLAO</span></div>
+  </div>
+
+</div>
+
+<script>
+// ===== DATA =====
+const VEHICLES = [
+  { plate: 'GGS-001', driver: 'CARLOS MAMANI QUISPE', status: 'moving', speed: 45, lat: -12.0464, lng: -77.0428, zone: 'DPW', signal: 4, color: '#00e676' },
+  { plate: 'GGS-002', driver: 'PEDRO FLORES TAYPE', status: 'stop', speed: 0, lat: -12.0551, lng: -77.1219, zone: 'DPW', signal: 3, color: '#ff3d3d' },
+  { plate: 'GGS-003', driver: 'JUAN HUANCA CCORI', status: 'moving', speed: 28, lat: -12.0333, lng: -77.0833, zone: 'APM', signal: 4, color: '#00e676' },
+  { plate: 'GGS-004', driver: 'LUIS CONDORI MAMANI', status: 'stop', speed: 0, lat: -12.0654, lng: -77.0719, zone: 'APM', signal: 2, color: '#ff3d3d' },
+  { plate: 'GGS-005', driver: 'ROBERTO QUISPE CRUZ', status: 'moving', speed: 62, lat: -12.0200, lng: -77.0550, zone: 'DPW', signal: 4, color: '#00e676' },
+  { plate: 'GGS-006', driver: 'MARIO APAZA LIMA', status: 'stop', speed: 0, lat: -12.0750, lng: -77.1100, zone: 'EXTERNO', signal: 3, color: '#ff3d3d' },
+  { plate: 'GGS-007', driver: 'FELIX CAYO TICONA', status: 'moving', speed: 19, lat: -12.0400, lng: -77.0300, zone: 'DPW', signal: 4, color: '#00e676' },
+  { plate: 'GGS-008', driver: 'ERNESTO RIOS PUMA', status: 'stop', speed: 0, lat: -12.0600, lng: -77.0900, zone: 'EXTERNO', signal: 1, color: '#ff3d3d' },
+  { plate: 'GGS-009', driver: 'NICOLAS VARGAS TITO', status: 'moving', speed: 34, lat: -12.0350, lng: -77.1050, zone: 'APM', signal: 4, color: '#00e676' },
+  { plate: 'GGS-010', driver: 'HUGO CATARI MAMANI', status: 'stop', speed: 0, lat: -12.0700, lng: -77.0600, zone: 'DPW', signal: 3, color: '#ff3d3d' },
+];
+
+const ALERTS = [
+  { type: 'DESVÍO DE RUTA', plate: 'GGS-005', time: '20/04/2026 17:45', icon: '↗' },
+  { type: 'DETENCIÓN NO AUTORIZADA', plate: 'GGS-002', time: '20/04/2026 17:30', icon: '🛑' },
+  { type: 'DESVÍO DE RUTA', plate: 'GGS-007', time: '20/04/2026 17:12', icon: '↗' },
+  { type: 'DETENCIÓN NO AUTORIZADA', plate: 'GGS-008', time: '20/04/2026 16:55', icon: '🛑' },
+  { type: 'DESVÍO DE RUTA', plate: 'GGS-003', time: '20/04/2026 16:40', icon: '↗' },
+  { type: 'VELOCIDAD EXCESIVA', plate: 'GGS-005', time: '20/04/2026 16:20', icon: '⚡' },
+];
+
+const ZONE_COLORS = { DPW: '#FF6B00', APM: '#00d4ff', EXTERNO: '#ffd600' };
+const ROUTE_HISTORY = [
+  { lat: -12.0464, lng: -77.0428 }, { lat: -12.0450, lng: -77.0400 },
+  { lat: -12.0430, lng: -77.0380 }, { lat: -12.0410, lng: -77.0360 },
+  { lat: -12.0390, lng: -77.0340 }, { lat: -12.0370, lng: -77.0320 },
+];
+
+// ===== STATE =====
+let map, markers = {}, routeLine = null, satellite = true;
+let tileLayerSat, tileLayerStreet;
+let simulationTimer;
+
+// ===== LOGIN =====
+function doLogin() {
+  const email = document.getElementById('login-email').value;
+  const pass = document.getElementById('login-pass').value;
+  const err = document.getElementById('login-error');
+  if ((email === 'admin@geogoes.com' && pass === 'goes2024') || (email && pass.length >= 4)) {
+    document.getElementById('login-screen').style.display = 'none';
+    document.getElementById('app').style.display = 'flex';
+    initApp();
+  } else {
+    err.style.display = 'block';
+    setTimeout(() => err.style.display = 'none', 3000);
+  }
+}
+
+document.getElementById('login-pass').addEventListener('keypress', e => { if(e.key === 'Enter') doLogin(); });
+
+function doLogout() {
+  if(confirm('¿Cerrar sesión?')) {
+    clearInterval(simulationTimer);
+    document.getElementById('app').style.display = 'none';
+    document.getElementById('login-screen').style.display = 'flex';
+  }
+}
+
+// ===== INIT =====
+function initApp() {
+  startClock();
+  initMap();
+  renderFleet();
+  renderTrace();
+  renderAlerts();
+  updateStats();
+  startSimulation();
+  // Force map to render correctly
+  setTimeout(() => { if(map) map.invalidateSize(true); }, 300);
+  setTimeout(() => { if(map) map.invalidateSize(true); }, 1000);
+}
+
+// ===== CLOCK =====
+function startClock() {
+  function tick() {
+    const now = new Date();
+    const h = String(now.getHours()).padStart(2,'0');
+    const m = String(now.getMinutes()).padStart(2,'0');
+    const s = String(now.getSeconds()).padStart(2,'0');
+    document.getElementById('clock').textContent = `${h}:${m}:${s}`;
+  }
+  tick();
+  setInterval(tick, 1000);
+}
+
+// ===== MAP =====
+function initMap() {
+  map = L.map('map', { zoomControl: false, attributionControl: false }).setView([-12.05, -77.08], 13);
+
+  // OpenStreetMap - funciona siempre
+  tileLayerSat = L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    maxZoom: 19,
+    attribution: '© OpenStreetMap'
+  });
+  tileLayerStreet = tileLayerSat;
+  tileLayerSat.addTo(map);
+
+  // Forzar re-render del mapa
+  setTimeout(() => {
+    map.invalidateSize(true);
+  }, 500);
+
+  // Draw geofence zones
+  drawZones();
+
+  // Add vehicles
+  VEHICLES.forEach(v => addMarker(v));
+
+  // Draw routes
+  const routeCoords = VEHICLES.filter(v => v.status === 'moving').map(v => [v.lat, v.lng]);
+  if (routeCoords.length > 1) {
+    L.polyline(routeCoords, { color: '#00e676', weight: 2, opacity: 0.6, dashArray: '6,4' }).addTo(map);
+  }
+}
+
+function drawZones() {
+  // Port zone (orange)
+  const portZone = [
+    [-12.048, -77.148], [-12.040, -77.148], [-12.035, -77.130],
+    [-12.045, -77.118], [-12.058, -77.125], [-12.060, -77.143]
+  ];
+  L.polygon(portZone, { color: '#FF6B00', fillColor: '#FF6B00', fillOpacity: 0.05, weight: 2, dashArray: '6,4' }).addTo(map);
+
+  // Secondary zone (cyan)
+  const zone2 = [
+    [-12.030, -77.065], [-12.025, -77.055], [-12.035, -77.040],
+    [-12.045, -77.050], [-12.040, -77.070]
+  ];
+  L.polygon(zone2, { color: '#00d4ff', fillColor: '#00d4ff', fillOpacity: 0.04, weight: 1.5, dashArray: '4,4' }).addTo(map);
+}
+
+function createVehicleIcon(vehicle) {
+  const isMoving = vehicle.status === 'moving';
+  const bg = isMoving ? '#00e676' : '#ff3d3d';
+  const arrow = isMoving ? '▲' : '⏸';
+  const html = `
+    <div style="
+      background:${bg};
+      color:${isMoving ? '#000' : '#fff'};
+      font-family:'Rajdhani',sans-serif;
+      font-weight:700;
+      font-size:10px;
+      padding:2px 6px;
+      border:1px solid ${isMoving ? '#00ff88' : '#ff6666'};
+      box-shadow:0 0 8px ${bg}66;
+      white-space:nowrap;
+      letter-spacing:1px;
+      display:flex;
+      align-items:center;
+      gap:4px;
+    ">
+      <span style="font-size:8px;">${arrow}</span>
+      ${vehicle.plate}
+    </div>
+  `;
+  return L.divIcon({ html, className: '', iconAnchor: [30, 10] });
+}
+
+function addMarker(vehicle) {
+  const marker = L.marker([vehicle.lat, vehicle.lng], { icon: createVehicleIcon(vehicle) })
+    .bindPopup(createPopup(vehicle))
+    .addTo(map);
+  markers[vehicle.plate] = marker;
+}
+
+function createPopup(v) {
+  return `
+    <div class="popup-content">
+      <div class="popup-plate">${v.plate}</div>
+      <div class="popup-row"><span class="popup-label">CONDUCTOR</span><span class="popup-val">${v.driver.split(' ')[0]}</span></div>
+      <div class="popup-row"><span class="popup-label">VELOCIDAD</span><span class="popup-val ${v.speed > 0 ? 'green' : ''}">${v.speed} kph</span></div>
+      <div class="popup-row"><span class="popup-label">ESTADO</span><span class="popup-val ${v.status === 'moving' ? 'green' : ''}">${v.status === 'moving' ? 'EN MARCHA' : 'DETENIDO'}</span></div>
+      <div class="popup-row"><span class="popup-label">ZONA</span><span class="popup-val">${v.zone}</span></div>
+    </div>
+  `;
+}
+
+let layerMode = 0;
+const layerConfigs = [
+  { url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', opts: { maxZoom: 19, crossOrigin: true } },
+  { url: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png', opts: { maxZoom: 19, crossOrigin: true } },
+  { url: 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', opts: { maxZoom: 19, subdomains: 'abcd', crossOrigin: true } }
+];
+function toggleLayer() {
+  map.eachLayer(l => { if (l._url) map.removeLayer(l); });
+  layerMode = (layerMode + 1) % 3;
+  const cfg = layerConfigs[layerMode];
+  L.tileLayer(cfg.url, cfg.opts).addTo(map);
+}
+
+function centerMap() {
+  const bounds = VEHICLES.map(v => [v.lat, v.lng]);
+  map.fitBounds(bounds, { padding: [40, 40] });
+}
+
+// ===== FLEET LIST =====
+function renderFleet(filter = '') {
+  const list = document.getElementById('fleet-list');
+  const filtered = VEHICLES.filter(v => v.plate.includes(filter.toUpperCase()) || v.driver.includes(filter.toUpperCase()));
+  document.getElementById('fleet-count').textContent = filtered.length;
+  list.innerHTML = filtered.map(v => `
+    <div class="vehicle-card" onclick="focusVehicle('${v.plate}')">
+      <div class="vc-top">
+        <span class="vc-plate">${v.plate}</span>
+        <span class="vc-status ${v.status === 'moving' ? 'moving' : 'stop'}">${v.status === 'moving' ? 'EN MARCHA' : 'STOP'}</span>
+      </div>
+      <div class="vc-stats">
+        <span class="vc-speed ${v.speed > 30 ? 'fast' : ''}">${v.speed} kph</span>
+        <span>|</span>
+        <span>${v.zone}</span>
+        <span>|</span>
+        <div class="vc-signal">
+          ${[1,2,3,4].map(i => `<div class="signal-bar" style="height:${i*3}px;background:${i <= v.signal ? '#00e676' : '#333'}"></div>`).join('')}
+        </div>
+        <span class="vc-time">${new Date().getHours().toString().padStart(2,'0')}:${new Date().getMinutes().toString().padStart(2,'0')}</span>
+      </div>
+    </div>
+  `).join('');
+}
+
+function filterFleet(val) { renderFleet(val); }
+
+function focusVehicle(plate) {
+  const v = VEHICLES.find(x => x.plate === plate);
+  if (!v) return;
+  map.setView([v.lat, v.lng], 16);
+  if (markers[plate]) markers[plate].openPopup();
+
+  // Show route history on map
+  if (routeLine) map.removeLayer(routeLine);
+  const pts = ROUTE_HISTORY.map(p => [p.lat + (Math.random()-0.5)*0.01, p.lng + (Math.random()-0.5)*0.01]);
+  pts.unshift([v.lat, v.lng]);
+  routeLine = L.polyline(pts, { color: '#FF6B00', weight: 3, opacity: 0.8 }).addTo(map);
+
+  // Switch to history tab to show
+  const cards = document.querySelectorAll('.vehicle-card');
+  cards.forEach(c => c.classList.remove('selected'));
+}
+
+// ===== TRACE LIST =====
+function renderTrace() {
+  const list = document.getElementById('trace-list');
+  const timers = ['00:09:41', '03:56:27', '07:39:39', '00:46:39', '85:09:45', '01:20:15', '02:35:08', '04:12:30', '06:44:22', '00:55:10'];
+  list.innerHTML = VEHICLES.map((v, i) => `
+    <div class="trace-card">
+      <div class="tc-header">
+        <span class="tc-plate">${v.plate}</span>
+        <span class="tc-zone" style="color:${ZONE_COLORS[v.zone]||'#FF6B00'};border-color:${ZONE_COLORS[v.zone]||'#FF6B00'}40">${v.zone}</span>
+      </div>
+      <div class="tc-driver">${v.driver}</div>
+      <div class="tc-info">
+        <span style="color:var(--text-dim);font-family:var(--font-mono);font-size:10px;">20/04/2026</span>
+        <span class="tc-timer">⏱ ${timers[i]}</span>
+      </div>
+      <div class="tc-addr" style="font-family:var(--font-mono);font-size:9px;color:var(--text-dim);margin-top:4px;">
+        LIMA, CALLAO — ${v.status === 'moving' ? 'EN RUTA' : 'DETENIDO'}
+      </div>
+    </div>
+  `).join('');
+}
+
+// ===== ALERTS =====
+function renderAlerts() {
+  const list = document.getElementById('alert-list');
+  list.innerHTML = ALERTS.map(a => `
+    <div class="alert-card">
+      <div class="ac-type">${a.icon} ${a.type}</div>
+      <div class="ac-info">
+        <span class="ac-plate">${a.plate}</span>
+        <span>${a.time}</span>
+        <span class="ac-new">NUEVA</span>
+      </div>
+    </div>
+  `).join('');
+  document.getElementById('alert-count').textContent = ALERTS.length;
+  document.getElementById('stat-alerts').textContent = ALERTS.length;
+}
+
+// ===== STATS =====
+function updateStats() {
+  const moving = VEHICLES.filter(v => v.status === 'moving').length;
+  const stopped = VEHICLES.filter(v => v.status === 'stop').length;
+  const maxSpd = Math.max(...VEHICLES.map(v => v.speed));
+  document.getElementById('stat-tot').textContent = VEHICLES.length;
+  document.getElementById('stat-mov').textContent = moving;
+  document.getElementById('stat-stop').textContent = stopped;
+  document.getElementById('stat-maxspd').textContent = maxSpd + ' kph';
+}
+
+// ===== SIMULATION =====
+function startSimulation() {
+  simulationTimer = setInterval(() => {
+    VEHICLES.forEach(v => {
+      if (v.status === 'moving') {
+        v.lat += (Math.random() - 0.5) * 0.002;
+        v.lng += (Math.random() - 0.5) * 0.002;
+        v.speed = Math.max(5, Math.min(80, v.speed + (Math.random() - 0.5) * 10));
+        v.speed = Math.round(v.speed);
+        if (markers[v.plate]) {
+          markers[v.plate].setLatLng([v.lat, v.lng]);
+          markers[v.plate].setIcon(createVehicleIcon(v));
+          markers[v.plate].setPopupContent(createPopup(v));
+        }
+      }
+    });
+    renderFleet(document.getElementById('fleet-search').value);
+    updateStats();
+  }, 2000);
+}
+
+// ===== UI TOGGLES =====
+function toggleSidePanel() {
+  document.getElementById('side-panel').classList.toggle('open');
+}
+
+function toggleAlertPanel() {
+  document.getElementById('alert-panel').classList.toggle('open');
+}
+
+function switchTab(tab, btn) {
+  ['fleet','trace','history'].forEach(t => {
+    document.getElementById('tab-' + t).style.display = t === tab ? 'block' : 'none';
+  });
+  document.querySelectorAll('.sidebar-tab').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+}
+
+function switchSidePanel(tab) {
+  toggleSidePanel();
+  setTimeout(() => {
+    const tabs = document.querySelectorAll('.sidebar-tab');
+    const tabMap = { fleet: 0, trace: 1, history: 2 };
+    if (tabs[tabMap[tab]]) {
+      switchTab(tab, tabs[tabMap[tab]]);
+      tabs[tabMap[tab]].classList.add('active');
+    }
+  }, 100);
+}
+</script>
+</body>
+</html>
